@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тайна Древнего Свитка — строки в Python</title>
+
+  <style>
+    :root {
+      --bg: #140d1e;
+      --panel: #241631;
+      --panel-2: #2f1d40;
+      --text: #f4e9d8;
+      --accent: #d9a441;
+      --accent-2: #8fd6ff;
+      --danger: #ff7b6b;
+      --ok: #84ff9d;
+      --cell: min(11vw, 50px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(217, 164, 65, 0.14), transparent 30%),
+        radial-gradient(circle at bottom, rgba(143, 214, 255, 0.10), transparent 25%),
+        var(--bg);
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+      transition: transform 0.08s ease, opacity 0.2s ease;
+    }
+
+    button:active {
+      transform: translateY(2px);
+    }
+
+    .primary {
+      background: linear-gradient(180deg, #e8b85b, #b97f1f);
+      color: #221204;
+      font-weight: bold;
+    }
+
+    .secondary {
+      background: linear-gradient(180deg, #8fd6ff, #4d97c7);
+      color: #082438;
+      font-weight: bold;
+    }
+
+    .danger {
+      background: linear-gradient(180deg, #ff9a8d, #d9534f);
+      color: #3d0907;
+      font-weight: bold;
+    }
+
+    .ghost {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text);
+    }
+
+    .big {
+      font-size: 1.1rem;
+      padding: 14px 22px;
+    }
+
+    #app {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 16px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 8px 0 4px;
+      font-size: clamp(1.4rem, 4vw, 2.5rem);
+      color: var(--accent);
+      text-shadow: 0 0 14px rgba(217, 164, 65, 0.35);
+    }
+
+    .subtitle {
+      margin-bottom: 14px;
+      color: #d8c9a8;
+      font-style: italic;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: bold;
+    }
+
+    main {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+    }
+
+    #board {
+      display: grid;
+      gap: 3px;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .cell {
+      width: var(--cell);
+      height: var(--cell);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: calc(var(--cell) * 0.56);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .cell.wall {
+      background: #392350;
+      border-color: rgba(255, 255, 255, 0.10);
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.35);
+    }
+
+    .cell.floor {
+      color: rgba(244, 233, 216, 0.35);
+    }
+
+    .cell.seal {
+      animation: pulse 1.2s infinite;
+    }
+
+    .cell.player {
+      background: rgba(217, 164, 65, 0.18);
+      box-shadow: 0 0 14px rgba(217, 164, 65, 0.20);
+    }
+
+    .cell.done {
+      color: #ffe28a;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    #controls {
+      display: grid;
+      grid-template-columns: repeat(3, 64px);
+      grid-template-rows: repeat(2, 48px);
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    #controls button {
+      font-size: 1.2rem;
+      background: linear-gradient(180deg, #4a3162, #2d1c3e);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    #controls button:nth-child(1) {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    #controls button:nth-child(2) {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    #controls button:nth-child(3) {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    #controls button:nth-child(4) {
+      grid-column: 3;
+      grid-row: 2;
+    }
+
+    .fires {
+      margin-top: 14px;
+      font-size: 1.3rem;
+      opacity: 0.85;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 3, 10, 0.82);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .modal {
+      width: min(92vw, 760px);
+      max-height: 92vh;
+      overflow: auto;
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 2px solid rgba(217, 164, 65, 0.30);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.45);
+      text-align: left;
+    }
+
+    .modal h2 {
+      margin-top: 0;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .modal h3 {
+      color: var(--accent-2);
+      margin-bottom: 8px;
+    }
+
+    .modal p,
+    .modal li {
+      line-height: 1.5;
+    }
+
+    .modal code,
+    .diary-list code {
+      font-family: Consolas, "Courier New", monospace;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 1px 5px;
+      color: #ffe28a;
+    }
+
+    .diary-list {
+      padding-left: 20px;
+    }
+
+    .diary-list li {
+      margin: 10px 0;
+    }
+
+    .warning {
+      background: rgba(255, 123, 107, 0.10);
+      border: 1px solid rgba(255, 123, 107, 0.25);
+      border-radius: 12px;
+      padding: 10px;
+      font-weight: bold;
+    }
+
+    #taskCode {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 1.05rem;
+      background: #120c18;
+      color: #d8ffdf;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    #answerInput {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      border-radius: 12px;
+      border: 2px solid rgba(217, 164, 65, 0.45);
+      background: rgba(0, 0, 0, 0.22);
+      color: var(--text);
+      outline: none;
+    }
+
+    #answerInput:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(217, 164, 65, 0.25);
+    }
+
+    .feedback {
+      min-height: 24px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .feedback.good {
+      color: var(--ok);
+    }
+
+    .feedback.bad {
+      color: var(--danger);
+    }
+
+    .hint {
+      min-height: 24px;
+      margin-top: 8px;
+      color: var(--accent-2);
+    }
+
+    .modal-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .modal-buttons button {
+      flex: 1 1 auto;
+    }
+
+    .secret {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #ffe28a;
+      background: rgba(217, 164, 65, 0.08);
+      border: 1px dashed rgba(217, 164, 65, 0.35);
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .potion-note {
+      font-weight: bold;
+      color: var(--accent-2);
+    }
+
+    @media (max-width: 560px) {
+      .modal-buttons button {
+        min-width: 45%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <header>
+      <h1>⚔ ТАЙНА ДРЕВНЕГО СВИТКА ⚔</h1>
+      <div class="subtitle">пещера Грам-мор • строки в Python</div>
+
+      <div class="stats">
+        <span class="badge" id="potions">🧪 Зелья подсказок: 3</span>
+        <span class="badge" id="fragments">📜 Обломки свитка: 0/6</span>
+        <button id="diaryBtn" class="secondary">📖 Дневник</button>
+        <button id="soundBtn" class="ghost">🔊</button>
+        <button id="restartBtn" class="ghost">↻ Заново</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="board"></div>
+
+      <div id="controls">
+        <button data-dir="up" aria-label="Вверх">▲</button>
+        <button data-dir="left" aria-label="Влево">◀</button>
+        <button data-dir="down" aria-label="Вниз">▼</button>
+        <button data-dir="right" aria-label="Вправо">▶</button>
+      </div>
+
+      <div class="fires">🔥🔥🔥🔥</div>
+    </main>
+  </div>
+
+  <!-- Стартовый экран -->
+  <div id="introModal" class="overlay">
+    <div class="modal">
+      <h2>📜 ТАЙНОПИСЬ</h2>
+
+      <h3>🧭 КАК ИГРАТЬ</h3>
+      <ul>
+        <li>Ходи: стрелки / WASD / кнопки.</li>
+        <li>Печать 🔒 = обломок свитка с кодом.</li>
+        <li>Вычисли, что напечатает <code>print()</code>, и введи ответ точно.</li>
+        <li>Зелья подсказок — всего 3 на весь поход!</li>
+        <li>Теория — в 📖 Дневнике.</li>
+      </ul>
+
+      <h3>🗝 ШЕСТЬ ПЕЧАТЕЙ</h3>
+      <p>
+        Глубоко в пещере Грам-мор спрятан Великий Свиток. Путь к нему закрывают
+        шесть магических печатей. В каждой — обломок свитка с кодом на Python.
+      </p>
+      <p>
+        Разгадай, что напечатает код, введи ответ — и печать падёт.
+        Собери все обломки, и тайнопись откроет тебе главную истину мага кода…
+      </p>
+
+      <p class="potion-note">🧪 У тебя 3 зелья подсказок на весь путь. Расходуй с умом!</p>
+
+      <div class="modal-buttons">
+        <button id="startBtn" class="primary big">▶ НАЧАТЬ ПОХОД</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Дневник -->
+  <div id="diaryModal" class="overlay hidden">
+    <div class="modal">
+      <h2>📖 ДНЕВНИК ИСКАТЕЛЯ</h2>
+
+      <ol class="diary-list">
+        <li>
+          <strong>Строка</strong> — цепочка символов в кавычках.
+          <code>s = "дракон"</code>
+        </li>
+
+        <li>
+          <strong>Сложение +</strong> склеивает строки.
+          <code>"маг" + "ик" → магик</code>
+        </li>
+
+        <li>
+          <strong>Умножение *</strong> повторяет строку.
+          <code>"ха" * 3 → хахаха</code>
+        </li>
+
+        <li>
+          <strong>len()</strong> — длина строки.
+          <code>len("дракон") → 6</code>
+        </li>
+
+        <li>
+          <strong>Индексы</strong> начинаются с НУЛЯ. Минус — с конца.
+          <code>s[0] → первая</code>, <code>s[-1] → последняя</code>
+        </li>
+
+        <li>
+          <strong>Срез [от:до]</strong> — «от» входит, «до» НЕТ.
+          <code>"абракадабра"[4:9] → кадаб</code>
+        </li>
+
+        <li>
+          <strong>.upper()</strong> — всё ЗАГЛАВНЫМИ,
+          <strong>.lower()</strong> — строчными.
+          <code>"победа".upper() → ПОБЕДА</code>
+        </li>
+
+        <li>
+          <strong>.replace(a, b)</strong> — заменить,
+          <strong>.count(x)</strong> — посчитать,
+          <strong>.find(x)</strong> — найти индекс.
+          <code>"абракадабра".count("а") → 5</code><br>
+          <code>"абракадабра".find("к") → 4</code>
+        </li>
+
+        <li>
+          <strong>Перевёртыш</strong>
+          <code>"магия"[::-1] → яигам</code>
+        </li>
+
+        <li>
+          <strong>Дополнительные строковые функции</strong> —
+          <code>.title()</code>, <code>.center()</code>, <code>.rfind()</code>,
+          <code>.isdigit()</code>, <code>.isalpha()</code>, <code>.isalnum()</code>.
+        </li>
+      </ol>
+
+      <p class="warning">
+        ⚠ Ловушки: регистр важен («Кот» ≠ «кот»); счёт с нуля; пробел — тоже символ!
+        Не путай букву «О» и цифру «0». Если <code>print()</code> выводит список,
+        ответ надо вводить со скобками и кавычками, как на экране.
+      </p>
+
+      <div class="modal-buttons">
+        <button id="diaryCloseBtn" class="primary">✕ ЗАКРЫТЬ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Задание -->
+  <div id="puzzleModal" class="overlay hidden">
+    <div class="modal">
+      <h2>📜 ОБЛОМОК СВИТКА</h2>
+      <h3 id="taskTitle"></h3>
+
+      <p>Что выведет этот код? Введи ответ в точности, как напечатает Python.</p>
+
+      <pre id="taskCode"></pre>
+
+      <input id="answerInput" type="text" autocomplete="off" placeholder="Точный ответ...">
+
+      <div id="feedback" class="feedback"></div>
+      <div id="hintText" class="hint"></div>
+
+      <div class="modal-buttons">
+        <button id="checkBtn" class="primary">✔ ПРОВЕРИТЬ</button>
+        <button id="hintBtn" class="secondary">🧪 ПОДСКАЗКА</button>
+        <button id="runBtn" class="danger">🏃 СБЕЖАТЬ</button>
+        <button id="closePuzzleBtn" class="ghost">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Победа -->
+  <div id="winModal" class="overlay hidden">
+    <div class="modal">
+      <h2>🏆 ВЕЛИКИЙ СВИТОК СОБРАН!</h2>
+
+      <p>Тайнопись гласит:</p>
+      <div class="secret">
+        «Строка — это цепочка символов. Методы strip, split, join, replace, upper,
+        lower, count, find и срезы превращают текст в магию!»
+      </div>
+
+      <div class="modal-buttons">
+        <button id="playAgainBtn" class="primary big">↻ ИГРАТЬ СНОВА</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // ПОСЛЕДНИЙ СЛОЖНЫЙ ВАРИАНТ ЗАДАНИЙ
+    // 4 задания из сложного бонусного варианта + 2 новых сложных,
+    // чтобы сохранить 6 печатей в игре.
+    // ============================================================
+    const TASKS = [
+      {
+        id: 1,
+        title: "Печать I — split без аргументов",
+        code: `s = "  маг   и  код  "
+print(s.split())`,
+        answer: `['маг', 'и', 'код']`,
+        hint: `split() без аргументов убирает лишние пробелы и возвращает список. Ответ нужно вводить так, как print() выводит список.`
+      },
+      {
+        id: 2,
+        title: "Печать II — title и замена пробела",
+        code: `s = "Грам-мор"
+print(s.replace("-", " ").title().replace(" ", "-"))`,
+        answer: `Грам-Мор`,
+        hint: `Сначала дефис заменяется пробелом, title() делает первую букву каждого слова заглавной, затем пробелы снова заменяются дефисами.`
+      },
+      {
+        id: 3,
+        title: "Печать III — center, upper, replace",
+        code: `s = "кот"
+print(s.center(7, "*").upper().replace("*", "#"))`,
+        answer: `##КОТ##`,
+        hint: `center(7, "*") добавляет звёздочки слева и справа, upper() делает буквы заглавными, replace() заменяет звёздочки на решётки.`
+      },
+      {
+        id: 4,
+        title: "Печать IV — isdigit, isalpha, isalnum",
+        code: `s = "123код"
+print(s.isdigit(), s.isalpha(), s.isalnum())`,
+        answer: `False False True`,
+        hint: `isdigit() проверяет только цифры, isalpha() только буквы, isalnum() буквы или цифры. print() выведет значения через пробел.`
+      },
+      {
+        id: 5,
+        title: "Печать V — rfind, find, count",
+        code: `s = "абракадабра"
+print(s.rfind("а") - s.find("а", 1) + s.count("а", 4, 9))`,
+        answer: `9`,
+        hint: `rfind() ищет последнее вхождение, find("а", 1) ищет первое начиная с индекса 1, count("а", 4, 9) считает только в диапазоне индексов.`
+      },
+      {
+        id: 6,
+        title: "Печать VI — перевёртыш, replace, find",
+        code: `s = "свиток"
+print(s[::-1].upper().replace("О", "0") + ":" + str(s.find("о", 2, 5)))`,
+        answer: `К0ТИВС:4`,
+        hint: `[::-1] переворачивает строку, upper() делает заглавные, replace() меняет букву О на ноль, find("о", 2, 5) ищет в диапазоне индексов.`
+      }
+    ];
+
+    // Карта: # — стена, P — старт игрока, 1..6 — печати
+    const MAP = [
+      "#######",
+      "#P1..2#",
+      "#.###.#",
+      "#3...4#",
+      "#.###.#",
+      "#5..6.#",
+      "#######"
+    ];
+
+    const board = document.getElementById("board");
+    const potionsEl = document.getElementById("potions");
+    const fragmentsEl = document.getElementById("fragments");
+    const diaryBtn = document.getElementById("diaryBtn");
+    const soundBtn = document.getElementById("soundBtn");
+    const restartBtn = document.getElementById("restartBtn");
+
+    const introModal = document.getElementById("introModal");
+    const diaryModal = document.getElementById("diaryModal");
+    const puzzleModal = document.getElementById("puzzleModal");
+    const winModal = document.getElementById("winModal");
+
+    const startBtn = document.getElementById("startBtn");
+    const diaryCloseBtn = document.getElementById("diaryCloseBtn");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+
+    const taskTitle = document.getElementById("taskTitle");
+    const taskCode = document.getElementById("taskCode");
+    const answerInput = document.getElementById("answerInput");
+    const feedback = document.getElementById("feedback");
+    const hintText = document.getElementById("hintText");
+    const checkBtn = document.getElementById("checkBtn");
+    const hintBtn = document.getElementById("hintBtn");
+    const runBtn = document.getElementById("runBtn");
+    const closePuzzleBtn = document.getElementById("closePuzzleBtn");
+
+    let audioCtx = null;
+    let state = null;
+
+    function initState() {
+      state = {
+        player: { x: 1, y: 1 },
+        collected: new Set(),
+        potions: 3,
+        activeTask: null,
+        usedHints: new Set(),
+        sound: true,
+        busy: false
+      };
+    }
+
+    function showOverlay(id) {
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function hideOverlay(id) {
+      document.getElementById(id).classList.add("hidden");
+    }
+
+    function hideAllOverlays() {
+      document.querySelectorAll(".overlay").forEach(el => el.classList.add("hidden"));
+    }
+
+    function isModalOpen() {
+      return !!document.querySelector(".overlay:not(.hidden)");
+    }
+
+    function updateHUD() {
+      potionsEl.textContent = `🧪 Зелья подсказок: ${state.potions}`;
+      fragmentsEl.textContent = `📜 Обломки свитка: ${state.collected.size}/6`;
+      soundBtn.textContent = state.sound ? "🔊" : "🔇";
+    }
+
+    function beep(freq = 440, duration = 0.06, type = "sine") {
+      if (!state.sound) return;
+
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.value = 0.04;
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        // звук не обязателен
+      }
+    }
+
+    function normalizeAnswer(value) {
+      let v = String(value || "").trim().replace(/\s+/g, " ");
+
+      // Для ответов-списков разрешаем вводить пробелы после запятых или без них.
+      if (v.startsWith("[") && v.endsWith("]")) {
+        v = v.replace(/\s+/g, "");
+      }
+
+      return v;
+    }
+
+    function renderBoard() {
+      board.innerHTML = "";
+
+      const rows = MAP.length;
+      const cols = MAP[0].length;
+      board.style.gridTemplateColumns = `repeat(${cols}, var(--cell))`;
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+
+          const ch = MAP[y][x];
+
+          if (x === state.player.x && y === state.player.y) {
+            cell.textContent = "🧙";
+            cell.classList.add("player");
+          } else if (ch === "#") {
+            cell.textContent = "🧱";
+            cell.classList.add("wall");
+          } else if ("123456".includes(ch)) {
+            const idx = Number(ch) - 1;
+
+            if (!state.collected.has(idx)) {
+              cell.textContent = "🔒";
+              cell.classList.add("seal");
+            } else {
+              cell.textContent = "✨";
+              cell.classList.add("done");
+            }
+          } else {
+            cell.textContent = "·";
+            cell.classList.add("floor");
+          }
+
+          board.appendChild(cell);
+        }
+      }
+
+      updateHUD();
+    }
+
+    function tryMove(dx, dy) {
+      if (state.busy || isModalOpen()) return;
+
+      const nx = state.player.x + dx;
+      const ny = state.player.y + dy;
+
+      if (ny < 0 || ny >= MAP.length || nx < 0 || nx >= MAP[0].length) return;
+
+      const ch = MAP[ny][nx];
+
+      if (ch === "#") {
+        beep(110, 0.07, "square");
+        return;
+      }
+
+      state.player.x = nx;
+      state.player.y = ny;
+
+      beep(320, 0.03);
+
+      if ("123456".includes(ch)) {
+        const idx = Number(ch) - 1;
+
+        if (!state.collected.has(idx)) {
+          renderBoard();
+          openPuzzle(idx);
+          return;
+        }
+      }
+
+      renderBoard();
+    }
+
+    function openPuzzle(idx) {
+      state.activeTask = idx;
+
+      taskTitle.textContent = TASKS[idx].title;
+      taskCode.textContent = TASKS[idx].code;
+      answerInput.value = "";
+      feedback.textContent = "";
+      feedback.className = "feedback";
+      hintText.textContent = "";
+
+      showOverlay("puzzleModal");
+
+      setTimeout(() => answerInput.focus(), 50);
+    }
+
+    function closePuzzle() {
+      hideOverlay("puzzleModal");
+      state.activeTask = null;
+      renderBoard();
+    }
+
+    function checkAnswer() {
+      if (state.activeTask === null || state.busy) return;
+
+      const idx = state.activeTask;
+      const given = answerInput.value.trim();
+
+      if (!given) {
+        feedback.textContent = "❌ Сначала введи ответ.";
+        feedback.className = "feedback bad";
+        return;
+      }
+
+      const givenNorm = normalizeAnswer(given);
+      const expectedNorm = normalizeAnswer(TASKS[idx].answer);
+
+      if (givenNorm === expectedNorm) {
+        state.busy = true;
+        state.collected.add(idx);
+
+        feedback.textContent = "✅ Верно! Печать падает…";
+        feedback.className = "feedback good";
+
+        updateHUD();
+
+        beep(700, 0.12);
+        setTimeout(() => beep(980, 0.16), 120);
+
+        setTimeout(() => {
+          state.busy = false;
+          hideOverlay("puzzleModal");
+          state.activeTask = null;
+          renderBoard();
+
+          if (state.collected.size === TASKS.length) {
+            showWin();
+          }
+        }, 900);
+      } else {
+        feedback.textContent = "❌ Пока не то. Проверь регистр, пробелы, скобки, кавычки и порядок действий.";
+        feedback.className = "feedback bad";
+        beep(160, 0.12, "square");
+      }
+    }
+
+    function useHint() {
+      if (state.activeTask === null) return;
+
+      const idx = state.activeTask;
+
+      if (state.usedHints.has(idx)) {
+        hintText.textContent = "🧪 " + TASKS[idx].hint;
+        return;
+      }
+
+      if (state.potions <= 0) {
+        hintText.textContent = "🧪 Зелья подсказок закончились!";
+        return;
+      }
+
+      state.potions -= 1;
+      state.usedHints.add(idx);
+      hintText.textContent = "🧪 " + TASKS[idx].hint;
+
+      updateHUD();
+      beep(620, 0.08);
+    }
+
+    function showWin() {
+      showOverlay("winModal");
+      beep(660, 0.12);
+      setTimeout(() => beep(880, 0.16), 140);
+      setTimeout(() => beep(1040, 0.20), 300);
+    }
+
+    function resetGame() {
+      initState();
+      hideAllOverlays();
+      renderBoard();
+      updateHUD();
+      showOverlay("introModal");
+    }
+
+    // Кнопки интерфейса
+    startBtn.addEventListener("click", () => {
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      hideOverlay("introModal");
+      beep(440, 0.08);
+    });
+
+    diaryBtn.addEventListener("click", () => {
+      showOverlay("diaryModal");
+    });
+
+    diaryCloseBtn.addEventListener("click", () => {
+      hideOverlay("diaryModal");
+    });
+
+    soundBtn.addEventListener("click", () => {
+      state.sound = !state.sound;
+      updateHUD();
+
+      if (state.sound) beep(520, 0.06);
+    });
+
+    restartBtn.addEventListener("click", resetGame);
+    playAgainBtn.addEventListener("click", resetGame);
+
+    checkBtn.addEventListener("click", checkAnswer);
+    hintBtn.addEventListener("click", useHint);
+    runBtn.addEventListener("click", closePuzzle);
+    closePuzzleBtn.addEventListener("click", closePuzzle);
+
+    answerInput.addEventListener("input", () => {
+      feedback.textContent = "";
+      feedback.className = "feedback";
+    });
+
+    // Кнопки движения
+    document.querySelectorAll("#controls button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const dir = btn.dataset.dir;
+
+        if (dir === "up") tryMove(0, -1);
+        if (dir === "down") tryMove(0, 1);
+        if (dir === "left") tryMove(-1, 0);
+        if (dir === "right") tryMove(1, 0);
+      });
+    });
+
+    // Клавиатура
+    document.addEventListener("keydown", (e) => {
+      const puzzleOpen = !puzzleModal.classList.contains("hidden");
+      const introOpen = !introModal.classList.contains("hidden");
+      const diaryOpen = !diaryModal.classList.contains("hidden");
+      const winOpen = !winModal.classList.contains("hidden");
+
+      if (puzzleOpen) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          checkAnswer();
+        }
+
+        if (e.key === "Escape") {
+          closePuzzle();
+        }
+
+        return;
+      }
+
+      if (introOpen) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          startBtn.click();
+        }
+        return;
+      }
+
+      if (diaryOpen) {
+        if (e.key === "Escape") {
+          diaryCloseBtn.click();
+        }
+        return;
+      }
+
+      if (winOpen) {
+        if (e.key === "Enter") {
+          playAgainBtn.click();
+        }
+        return;
+      }
+
+      const k = e.key.toLowerCase();
+
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
+        e.preventDefault();
+      }
+
+      if (k === "arrowup" || k === "w" || k === "ц") tryMove(0, -1);
+      if (k === "arrowdown" || k === "s" || k === "ы") tryMove(0, 1);
+      if (k === "arrowleft" || k === "a" || k === "ф") tryMove(-1, 0);
+      if (k === "arrowright" || k === "d" || k === "в") tryMove(1, 0);
+    });
+
+    // Запуск игры
+    initState();
+    renderBoard();
+    updateHUD();
+    showOverlay("introModal");
+  </script>
+</body>
+</html>
